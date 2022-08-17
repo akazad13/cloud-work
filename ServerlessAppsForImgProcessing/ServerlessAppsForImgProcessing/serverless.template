@@ -1,0 +1,125 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "Template that creates a S3 bucket and a Lambda function that will be invoked when new objects are upload to the bucket.",
+  "Parameters": {
+    "BucketName": {
+      "Type": "String",
+      "Description": "Name of S3 bucket to be created. The Lambda function will be invoked when new objects are upload to the bucket. If left blank a name will be generated.",
+      "MinLength": "0"
+    }
+  },
+  "Conditions": {
+    "BucketNameGenerated": {
+      "Fn::Equals": [
+        {
+          "Ref": "BucketName"
+        },
+        ""
+      ]
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::If": [
+            "BucketNameGenerated",
+            {
+              "Ref": "AWS::NoValue"
+            },
+            {
+              "Ref": "BucketName"
+            }
+          ]
+        }
+      }
+    },
+    "RekognitionFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Description": "Use AWS Rekognition to get the labels and save it in the dynamodb",
+        "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.rekognition.Function::FunctionHandler",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambda_FullAccess",
+          "AmazonRekognitionReadOnlyAccess",
+          "AmazonS3FullAccess",
+          "AmazonDynamoDBFullAccess"
+        ],
+            "Events": {
+              "NewImagesBucket": {
+              "Type": "S3",
+              "Properties": {
+                "Bucket": {
+                  "Ref": "Bucket"
+                },
+                "Events": [
+                  "s3:ObjectCreated:*"
+                 ]
+                }
+               }
+             }
+      }
+    },
+    "GenerateThumbnailFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+            "Description": "Generate thumbnails for images",
+            "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.Thumbnail.Function::FunctionHandler",
+            "Runtime": "dotnet6",
+            "CodeUri": "",
+            "MemorySize": 512,
+            "Timeout": 300,
+            "Role": null,
+            "Policies": [
+                "AWSLambda_FullAccess",
+                "AmazonS3FullAccess"
+            ]
+         }
+     },
+    "ImageLabels": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+            "AttributeDefinitions": [
+                {
+                    "AttributeName": "Image",
+                    "AttributeType": "S"
+                },
+                {
+                    "AttributeName": "Labels",
+                    "AttributeType": "S"
+                }
+            ],
+            "KeySchema": [
+                {
+                    "AttributeName": "Image",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "Labels",
+                    "KeyType": "RANGE"
+                }
+            ],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1
+            }
+         }
+     }
+        
+  },
+  "Outputs": {
+    "BucketForImages": {
+      "Value": {
+        "Ref": "Bucket"
+      },
+      "Description": "Upload images to this bucket to trigger the Lambda function"
+    }
+  }
+}
