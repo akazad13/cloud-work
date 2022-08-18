@@ -3,6 +3,8 @@ using Amazon.Lambda.S3Events;
 
 using Amazon.S3;
 using Amazon.S3.Model;
+using Newtonsoft.Json;
+using ServerlessAppsForImgProcessing.Model;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Processing;
@@ -54,48 +56,56 @@ public class Function
     /// <param name="input"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    public async Task FunctionHandler(S3Event input, ILambdaContext context)
+    public async Task FunctionHandler(object obj, ILambdaContext context)
     {
-        foreach (var record in input.Records)
+        var evresp = JsonConvert.DeserializeObject<EventNotification>(obj.ToString());
+
+        if (!SupportedImageTypes.Contains(Path.GetExtension(evresp.Detail.Object.Key)))
         {
-            if (!SupportedImageTypes.Contains(Path.GetExtension(record.S3.Object.Key)))
+            Console.WriteLine($"Object {evresp.Detail.Bucket.Name}:{evresp.Detail.Object.Key} is not a supported image type");
+            return;
+        }
+
+        Console.WriteLine($"Looking for labels in image {evresp.Detail.Bucket.Name}:{evresp.Detail.Object.Key}");
+
+        var s3Bucket = evresp.Detail.Bucket.Name;
+        var srcKey = evresp.Detail.Object.Key;
+
+
+        using (var response = await S3Client.GetObjectAsync(s3Bucket, srcKey))
+        {
+            using (Stream responseStream = response.ResponseStream)
             {
-                Console.WriteLine($"Object {record.S3.Bucket.Name}:{record.S3.Object.Key} is not a supported image type");
-                continue;
-            }
+                (Image Image, IImageFormat Format) image;
+                image = await Image.LoadWithFormatAsync(responseStream);
 
-            Console.WriteLine($"Looking for labels in image {record.S3.Bucket.Name}:{record.S3.Object.Key}");
+                Console.WriteLine($"Start resizing");
 
-            var s3Bucket = record.S3.Bucket.Name;
-            var srcKey = record.S3.Object.Key;
-
-            using (var response = await S3Client.GetObjectAsync(s3Bucket, srcKey))
-            {
-                using (Stream responseStream = response.ResponseStream)
+                image.Image.Mutate(x => x.Resize(200, 200));
+                Console.WriteLine($"Resized, Uploading to output bucket");
+                using (MemoryStream m = new MemoryStream())
                 {
-                    (Image Image, IImageFormat Format) image;
-                    image = await Image.LoadWithFormatAsync(responseStream);
-
-                    Console.WriteLine($"Start resizing");
-
-                    image.Image.Mutate(x => x.Resize(200, 200));
-                    Console.WriteLine($"Resized, Uploading to output bucket");
-                    using (MemoryStream m = new MemoryStream())
+                    await image.Image.SaveAsync(m, image.Format);
+                    PutObjectRequest putRequest = new PutObjectRequest()
                     {
-                        await image.Image.SaveAsync(m, image.Format);
-                        PutObjectRequest putRequest = new PutObjectRequest()
-                        {
-                            BucketName = "lab4-image-resized",
-                            Key = $"thumbnail-{srcKey}",
-                            InputStream = m
-                        };
-                        await S3Client.PutObjectAsync(putRequest);
-                        Console.WriteLine($"Uploaded");
-                    }
+                        BucketName = "lab4-image-resized",
+                        Key = $"thumbnail-{srcKey}",
+                        InputStream = m
+                    };
+                    await S3Client.PutObjectAsync(putRequest);
+                    Console.WriteLine($"Uploaded");
 
+                    //res = new Response
+                    //{
+                    //    Bucket = evresp.Detail.Bucket.Name,
+                    //    Key = evresp.Detail.Object.Key,
+                    //    Body = image.Image.ToBase64String(image.Format),
+                    //    Type = image.Format.Name
+                    //};
                 }
             }
         }
+
         return;
     }
 }
