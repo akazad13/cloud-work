@@ -13,5 +13,5 @@
     "template"      : "serverless.template",
     "template-parameters" : "\"BucketName\"=\"lab4-image-input\"",
     "s3-bucket"           : "lab4-codes",
-    "stack-name"          : "lab4-test-stack"
+    "stack-name"          : "lab4-stack"
 }

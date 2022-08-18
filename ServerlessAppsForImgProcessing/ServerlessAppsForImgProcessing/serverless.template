@@ -1,77 +1,340 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Transform": "AWS::Serverless-2016-10-31",
-  "Description": "Template that creates a S3 bucket and a Lambda function that will be invoked when new objects are upload to the bucket.",
-  "Resources": {
-    "lab4ImageUpload": {
-      "Type": "AWS::S3::Bucket"
-    },
-    "lab4ThambnailImage": {
-      "Type": "AWS::S3::Bucket"
-    },
-    "RekognitionFunction": {
-      "Type": "AWS::Serverless::Function",
-      "Properties": {
-        "Description": "Use AWS Rekognition to get the labels and save it in the dynamodb",
-        "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.rekognition.Function::FunctionHandler",
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 256,
-        "Timeout": 30,
-        "Role": null,
-        "Policies": [
-          "AWSLambdaExecute",
-          "AmazonRekognitionReadOnlyAccess"
-        ]
-       }
-    },
-    "GenerateThumbnailFunction": {
-      "Type": "AWS::Serverless::Function",
-      "Properties": {
-            "Description": "Generate thumbnails for images",
-            "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.Thumbnail.Function::FunctionHandler",
-            "Runtime": "dotnet6",
-            "CodeUri": "",
-            "MemorySize": 512,
-            "Timeout": 300,
-            "Role": null,
-            "Policies": [
-                "AWSLambdaExecute",
-                "AmazonS3FullAccess"
-            ]
-         }
-     },
-    "ImageLabels": {
-        "Type": "AWS::DynamoDB::Table",
-        "Properties": {
-            "AttributeDefinitions": [
-                {
-                    "AttributeName": "Image",
-                    "AttributeType": "S"
-                },
-                {
-                    "AttributeName": "Labels",
-                    "AttributeType": "S"
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Description": "Template that creates two S3 bucket and two Lambda function. A S3 Event Bridge rule will fire when image is uploaded on the ImageUploadBucket. It triggers a step function that will execute two lambda functions.",
+    "Resources": {
+        "ImageUploadBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "NotificationConfiguration": {
+                    "EventBridgeConfiguration": {
+                        "EventBridgeEnabled": true
+                    }
                 }
-            ],
-            "KeySchema": [
-                {
-                    "AttributeName": "Image",
-                    "KeyType": "HASH"
-                },
-                {
-                    "AttributeName": "Labels",
-                    "KeyType": "RANGE"
-                }
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 1,
-                "WriteCapacityUnits": 1
             }
-         }
-     }
-        
-  },
-  "Outputs": {
-  }
+        },
+        "ThambnailImageBucket": {
+            "Type": "AWS::S3::Bucket"
+        },
+        "RekognitionFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Description": "Use AWS Rekognition to get the labels and save it in the dynamodb",
+                "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.rekognition.Function::FunctionHandler",
+                "Runtime": "dotnet6",
+                "CodeUri": "",
+                "MemorySize": 256,
+                "Timeout": 30,
+                "Role": null,
+                "Policies": [
+                    "AWSLambdaExecute",
+                    "AmazonRekognitionReadOnlyAccess"
+                ]
+            }
+        },
+        "GenerateThumbnailFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "Description": "Generate thumbnails for images",
+                "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.Thumbnail.Function::FunctionHandler",
+                "Runtime": "dotnet6",
+                "CodeUri": "",
+                "MemorySize": 512,
+                "Timeout": 300,
+                "Role": null,
+                "Policies": [
+                    "AWSLambdaExecute",
+                    "AmazonS3FullAccess"
+                ]
+            }
+        },
+        "ImageLabels": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "Image",
+                        "AttributeType": "S"
+                    },
+                    {
+                        "AttributeName": "Labels",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "Image",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "Labels",
+                        "KeyType": "RANGE"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1
+                }
+            }
+        },
+        "ImageProcessingStateMachine": {
+            "Type": "AWS::StepFunctions::StateMachine",
+            "Properties": {
+                "DefinitionString": "{\n    \"Comment\": \"A description of my state machine\",\n    \"StartAt\": \"Parallel\",\n    \"States\": {\n        \"Parallel\": {\n        \"Type\": \"Parallel\",\n        \"Branches\": [\n          {\n            \"StartAt\": \"Thumbnail\",\n            \"States\": {\n              \"Thumbnail\": {\n                \"Type\": \"Task\",\n                \"Resource\": \"arn:aws:states:::lambda:invoke\",\n                \"Parameters\": {\n                  \"Payload.$\": \"$\",\n                  \"FunctionName\": \"${ThumbnailFunction}\"\n                },\n                \"Retry\": [\n                  {\n                    \"ErrorEquals\": [\n                      \"Lambda.ServiceException\",\n                      \"Lambda.AWSLambdaException\",\n                      \"Lambda.SdkClientException\"\n                    ],\n                    \"IntervalSeconds\": 2,\n                    \"MaxAttempts\": 6,\n                    \"BackoffRate\": 2\n                  }\n                ],\n                \"End\": true\n              }\n            }\n          },\n          {\n            \"StartAt\": \"Rekognition\",\n            \"States\": {\n              \"Rekognition\": {\n                \"Type\": \"Task\",\n                \"Resource\": \"arn:aws:states:::lambda:invoke\",\n                \"Parameters\": {\n                  \"Payload.$\": \"$\",\n                  \"FunctionName\": \"${RekognitionFunction}\"\n                },\n                \"Retry\": [\n                  {\n                    \"ErrorEquals\": [\n                      \"Lambda.ServiceException\",\n                      \"Lambda.AWSLambdaException\",\n                      \"Lambda.SdkClientException\"\n                    ],\n                    \"IntervalSeconds\": 2,\n                    \"MaxAttempts\": 6,\n                    \"BackoffRate\": 2\n                  }\n                ],\n                \"Next\": \"ImageLabels\",\n                \"OutputPath\": \"$.Payload\"\n              },\n              \"ImageLabels\": {\n                \"Type\": \"Task\",\n                \"Resource\": \"arn:aws:states:::dynamodb:putItem\",\n                \"Parameters\": {\n                  \"TableName\": \"${ImageLabels}\",\n                  \"Item\": {\n                    \"Image\": {\n                      \"S.$\": \"$.Image\"\n                    },\n                    \"Labels\": {\n                      \"S.$\": \"$.Labels\"\n                    }\n                  }\n                },\n                \"End\": true\n              }\n            }\n          }\n        ],\n        \"End\": true\n        }\n    }\n}",
+                "RoleArn": {
+                    "Fn::GetAtt": [
+                        "ImageProcessingStateMachineRole",
+                        "Arn"
+                    ]
+                },
+                "StateMachineName": "ImageProcessingStateMachine",
+                "Tags": [
+                    {
+                        "Key": "stateMachine:createdBy",
+                        "Value": "SAM"
+                    }
+                ],
+                "DefinitionSubstitutions": {
+                    "ImageLabels": {
+                        "Ref": "ImageLabels"
+                    },
+                    "ThumbnailFunction": {
+                        "Ref": "GenerateThumbnailFunction"
+                    },
+                    "RekognitionFunction": {
+                        "Ref": "RekognitionFunction"
+                    }
+                }
+            }
+        },
+        "ImageProcessingStateMachineRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "states.amazonaws.com"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "LambdaInvokePolicy",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:InvokeFunction"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${RekognitionFunctionName}",
+                                                {
+                                                    "RekognitionFunctionName": {
+                                                        "Ref": "RekognitionFunction"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${RekognitionFunctionName}:*",
+                                                {
+                                                    "RekognitionFunctionName": {
+                                                        "Ref": "RekognitionFunction"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${GenerateThumbnailFunctionName}",
+                                                {
+                                                    "GenerateThumbnailFunctionName": {
+                                                        "Ref": "GenerateThumbnailFunction"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${GenerateThumbnailFunctionName}:*",
+                                                {
+                                                    "GenerateThumbnailFunctionName": {
+                                                        "Ref": "GenerateThumbnailFunction"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "XRayAccessPolicy",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "xray:PutTraceSegments",
+                                        "xray:PutTelemetryRecords",
+                                        "xray:GetSamplingRules",
+                                        "xray:GetSamplingTargets"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "DynamoDBPolicy",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "dynamodb:PutItem",
+                                        "dynamodb:UpdateItem",
+                                        "dynamodb:BatchWriteItem"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}",
+                                                {
+                                                    "tableName": {
+                                                        "Ref": "ImageLabels"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Sub": [
+                                                "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}/index/*",
+                                                {
+                                                    "tableName": {
+                                                        "Ref": "ImageLabels"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "stateMachine:createdBy",
+                        "Value": "SAM"
+                    }
+                ]
+            }
+        },
+        "EventBridgeTriggerRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "events.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "SfnPolicy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "states:StartExecution"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": {
+                                        "Fn::GetAtt": [
+                                            "ImageProcessingStateMachine",
+                                            "Arn"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "EventBridgeTrigger": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+                "EventPattern": {
+                    "Fn::Sub": [
+                        "{\n  \"source\": [\"aws.s3\"],\n  \"detail-type\": [\"Object Created\"],\n  \"detail\": {\n    \"bucket\": {\n      \"name\": [\"${ImageUploadBucket}\"]\n    }\n  }\n}\n",
+                        {
+                            "ImageUploadBucketName": {
+                                "Ref": "ImageUploadBucket"
+                            }
+                        }
+                    ]
+                },
+                "State": "ENABLED",
+                "Targets": [
+                    {
+                        "Arn": {
+                            "Fn::GetAtt": [
+                                "ImageProcessingStateMachine",
+                                "Arn"
+                            ]
+                        },
+                        "Id": "StepFunctionTarget",
+                        "RoleArn": {
+                            "Fn::GetAtt": [
+                                "EventBridgeTriggerRole",
+                                "Arn"
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "ImageUploadBucket": {
+            "Description": "S3 Bucket ARN",
+            "Value": {
+                "Ref": "ImageUploadBucket"
+            }
+        },
+        "ThambnailImageBucket": {
+            "Description": "S3 Bucket ARN",
+            "Value": {
+                "Ref": "ThambnailImageBucket"
+            }
+        }
+    }
 }

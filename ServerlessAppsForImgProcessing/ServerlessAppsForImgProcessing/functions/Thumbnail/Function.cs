@@ -20,12 +20,16 @@ public class Function
     /// <summary>
     /// The default minimum confidence used for detecting labels.
     /// </summary>
-    public const float DEFAULT_MIN_CONFIDENCE = 90f;
+    public const string DEFAULT_THUMBNAIL_BUCKET = "lab4-stack-thambnailimagebucket-11i3c725058x8";
+
+    public const string THUMBNAIL_BUCKET_ENVIRONMENT_VARIABLE_NAME = "ThumbnailBucketName";
 
     IAmazonS3 S3Client { get; }
 
 
     HashSet<string> SupportedImageTypes { get; } = new HashSet<string> { ".png", ".jpg", ".jpeg" };
+
+    string ThumbnailBucketName { get; set; } = DEFAULT_THUMBNAIL_BUCKET;
 
     /// <summary>
     /// Default constructor used by AWS Lambda to construct the function. Credentials and Region information will
@@ -37,6 +41,15 @@ public class Function
     public Function()
     {
         this.S3Client = new AmazonS3Client();
+        var environmentBucketName = System.Environment.GetEnvironmentVariable(THUMBNAIL_BUCKET_ENVIRONMENT_VARIABLE_NAME);
+        if (!string.IsNullOrWhiteSpace(environmentBucketName))
+        {
+                this.ThumbnailBucketName = environmentBucketName;
+        }
+        else
+        {
+            Console.WriteLine($"Using default thumbnail bucket of {this.ThumbnailBucketName}");
+        }
     }
 
     /// <summary>
@@ -44,9 +57,10 @@ public class Function
     /// </summary>
     /// <param name="s3Client"></param>
 
-    public Function(IAmazonS3 s3Client)
+    public Function(IAmazonS3 s3Client, string thumbnailBucketName)
     {
         this.S3Client = s3Client;
+        this.ThumbnailBucketName = thumbnailBucketName;
     }
 
     /// <summary>
@@ -88,20 +102,12 @@ public class Function
                     await image.Image.SaveAsync(m, image.Format);
                     PutObjectRequest putRequest = new PutObjectRequest()
                     {
-                        BucketName = "lab4-image-resized",
+                        BucketName = this.ThumbnailBucketName,
                         Key = $"thumbnail-{srcKey}",
                         InputStream = m
                     };
                     await S3Client.PutObjectAsync(putRequest);
                     Console.WriteLine($"Uploaded");
-
-                    //res = new Response
-                    //{
-                    //    Bucket = evresp.Detail.Bucket.Name,
-                    //    Key = evresp.Detail.Object.Key,
-                    //    Body = image.Image.ToBase64String(image.Format),
-                    //    Type = image.Format.Name
-                    //};
                 }
             }
         }
