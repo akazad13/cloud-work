@@ -1,11 +1,8 @@
 ﻿using Amazon.Lambda.Core;
-using Amazon.Lambda.S3Events;
-
 
 using Amazon.Rekognition;
 using Amazon.Rekognition.Model;
 
-using Amazon.S3;
 using Newtonsoft.Json;
 using ServerlessAppsForImgProcessing.Model;
 
@@ -27,8 +24,6 @@ public class Function
     /// </summary>
     public const string MIN_CONFIDENCE_ENVIRONMENT_VARIABLE_NAME = "MinConfidence";
 
-    IAmazonS3 S3Client { get; }
-
     IAmazonRekognition RekognitionClient { get; }
 
     float MinConfidence { get; set; } = DEFAULT_MIN_CONFIDENCE;
@@ -44,7 +39,6 @@ public class Function
     /// </summary>
     public Function()
     {
-        this.S3Client = new AmazonS3Client();
         this.RekognitionClient = new AmazonRekognitionClient();
 
         var environmentMinConfidence = System.Environment.GetEnvironmentVariable(MIN_CONFIDENCE_ENVIRONMENT_VARIABLE_NAME);
@@ -72,9 +66,8 @@ public class Function
     /// <param name="s3Client"></param>
     /// <param name="rekognitionClient"></param>
     /// <param name="minConfidence"></param>
-    public Function(IAmazonS3 s3Client, IAmazonRekognition rekognitionClient, float minConfidence)
+    public Function(IAmazonRekognition rekognitionClient, float minConfidence)
     {
-        this.S3Client = s3Client;
         this.RekognitionClient = rekognitionClient;
         this.MinConfidence = minConfidence;
     }
@@ -103,7 +96,7 @@ public class Function
             MinConfidence = MinConfidence,
             Image = new Image
             {
-                S3Object = new Amazon.Rekognition.Model.S3Object
+                S3Object = new S3Object
                 {
                     Bucket = evresp.Detail.Bucket.Name,
                     Name = evresp.Detail.Object.Key

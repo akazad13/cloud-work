@@ -19,7 +19,7 @@
         "RekognitionFunction": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Description": "Use AWS Rekognition to get the labels and save it in the dynamodb",
+                "Description": "Use AWS Rekognition to get the labels",
                 "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.rekognition.Function::FunctionHandler",
                 "Runtime": "dotnet6",
                 "CodeUri": "",
@@ -35,7 +35,7 @@
         "GenerateThumbnailFunction": {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "Description": "Generate thumbnails for images",
+                "Description": "Generate thumbnails for images and save them in the AWS S3",
                 "Handler": "ServerlessAppsForImgProcessing::ServerlessAppsForImgProcessing.functions.Thumbnail.Function::FunctionHandler",
                 "Runtime": "dotnet6",
                 "CodeUri": "",
