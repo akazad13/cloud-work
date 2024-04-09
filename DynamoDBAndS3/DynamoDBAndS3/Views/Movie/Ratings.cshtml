@@ -1,0 +1,68 @@
+﻿@model List<Rating>
+
+<div>
+    <h1>Add a rating/comment</h1>
+    <form method="post" action="/Movie/PostRating">
+        <input type="hidden" name="movieId" value="@ViewBag.MovieId" />
+        <input type="hidden" name="movieName" value="@ViewBag.MovieName" />
+        
+        <div class="form-group">
+            <label>Rating:</label>
+            <select class="form-control" name="movieRating">
+                <option>0</option>
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Comment:</label>
+            <textarea class="form-control" name="movieComment"></textarea>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+</div>
+
+<br />
+
+<div>
+    <h1>Ratings/Comments for @ViewBag.MovieName (@ViewBag.MovieId)</h1>
+    @if(Model.Count > 0)
+    {
+        foreach(Rating rating in Model)
+        {
+            int rate = Convert.ToInt32(rating.Rate);
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="width:50%"><h5 style="display:inline-block">@rating.Username</h5> - <h6 style="display:inline-block">@rating.Date</h6></th>
+                        <th style="width:50%">
+                            @for (int i = 0; i < rate; i++)
+                            {
+                                <i class="fas fa-star"></i>
+                            }
+                            @for (int i = rate; i < 5; i++)
+                            {
+                                <i class="far fa-star"></i>
+                            }
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2"><h6>@rating.Comment</h6></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br />
+        }
+    }
+    else
+    {
+        <p>No comments/ratings have been made for this movie.</p>
+    }
+</div>

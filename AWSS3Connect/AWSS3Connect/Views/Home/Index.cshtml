@@ -1,0 +1,49 @@
+﻿@model List<AWSS3Connect.Models.Book>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+
+<p>
+    <a asp-action="Create">Create New Book</a>
+</p>
+<div class="text-danger" style="display: @(ViewBag.Erro == "" ? "none" : "")">@ViewBag.Error</div>
+<hr />
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Book Id
+            </th>
+            <th>
+                Book Name
+            </th>
+            <th>
+                Description
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+        <tr>
+            <td>
+                @item.BookId
+            </td>
+            <td>
+                @item.BookName
+            </td>
+            <td>
+                @item.Description
+            </td>
+            <td width="20%">
+                <a asp-action="Edit" asp-route-id="@item.BookId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.BookId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.BookId">Delete</a>
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>

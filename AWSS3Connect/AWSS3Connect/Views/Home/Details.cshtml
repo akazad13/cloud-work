@@ -1,0 +1,35 @@
+﻿@model AWSS3Connect.Models.Book
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<div>
+    <div class="text-danger" style="display: @(ViewBag.Erro == "" ? "none" : "")">@ViewBag.Error</div>
+    <h4>Books Details</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-1">
+            @Html.DisplayNameFor(model => model.BookId)
+        </dt>
+        <dd class="col-sm-11">
+            @Html.DisplayFor(model => model.BookId)
+        </dd>
+        <dt class="col-sm-1">
+            @Html.DisplayNameFor(model => model.BookName)
+        </dt>
+        <dd class="col-sm-11">
+            @Html.DisplayFor(model => model.BookName)
+        </dd>
+        <dt class="col-sm-1">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class="col-sm-11">
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.BookId">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>

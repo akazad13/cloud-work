@@ -1,0 +1,21 @@
+
+{
+    "region" : "us-east-1",
+    "configuration" : "Debug",
+    "framework"     : "netcoreapp3.1",
+    "self-contained" : false,
+    "application"    : "NavyaFarhanaLab3",
+    "environment"    : "NavyaFarhanaLab3-dev",
+    "app-path"       : "/",
+    "iis-website"    : "Default Web Site",
+    "enable-xray"    : false,
+    "enhanced-health-type" : "basic",
+    "additional-options"   : "",
+    "solution-stack"       : "64bit Windows Server 2019 v2.10.5 running IIS 10.0",
+    "environment-type"     : "SingleInstance",
+    "cname"                : "navyafarhanalab3-dev",
+    "instance-type"        : "t2.micro",
+    "key-pair"             : "KeyPairNavya",
+    "instance-profile"     : "aws-elasticbeanstalk-ec2-role",
+    "service-role"         : "aws-elasticbeanstalk-service-role"
+}
