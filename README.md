@@ -104,6 +104,12 @@ dotnet lambda deploy-function ProcessImageFunction
 
 ---
 
+## 🤖 AI-Driven Development & Contributing
+
+Autonomous coding agents (Antigravity, Cursor, Claude Code, GitHub Copilot) operating in this repository must consult [AGENTS.md](AGENTS.md) for AWS credential safety rules (never commit access keys), solution structure, and build verification gates.
+
+---
+
 ## 👤 Author
 
 **Md. Abul Kalam**
