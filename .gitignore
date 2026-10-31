@@ -1,7 +1,4 @@
 .vs
-bin/*
-obj/*
-*/bin/*
-*/obj/*
-*/.vs/*
-*/*/obj/*
+**/bin/
+**/obj/
+**/.vs/
