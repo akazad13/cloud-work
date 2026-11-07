@@ -43,7 +43,30 @@ This document provides mandatory guidance for autonomous AI coding agents (Antig
 
 ---
 
-## 3. Commands Cheat Sheet
+## 3. Testing Paradigm & Agentic Verification
+
+All testing across this repository follows the standards codified in [ADR-0003](docs/adr/0003-testing-paradigm-and-agentic-verification.md) and the `test-driven-development` skill:
+
+### Core Testing Invariants:
+1. **Zero Live Cloud Credentials**:
+   - Automated tests must run 100% offline and locally without requiring AWS credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`), AWS profiles, or network connectivity.
+   - Use in-memory test doubles (`IAmazonS3`, `IAmazonDynamoDB`, `IAmazonRekognition`, `IAWSS3Helper`) via constructor injection.
+2. **State over Interaction Assertions**:
+   - Assert against output artifacts, converted image streams, DynamoDB attribute dictionaries, and returned status models.
+   - Avoid brittle mock call count verifications (`Times.Once()`) unless testing fire-and-forget side effects with no observable state change.
+3. **DAMP (Descriptive And Meaningful Phrases) Test Design**:
+   - Favor clear, readable, self-contained Arrange-Act-Assert (AAA) tests over heavy DRY abstractions that conceal intent.
+   - Use strongly-typed Lambda event fixtures (`Amazon.Lambda.S3Events.S3Event`, `APIGatewayProxyRequest`, `EventNotification`) representing realistic cloud events.
+
+### Agentic TDD Workflow:
+1. **RED**: Write a failing xUnit test reproducing a bug (Prove-It pattern) or specifying new behavior before touching implementation code.
+2. **GREEN**: Write minimal production code required to satisfy the test.
+3. **REFACTOR**: Clean up, optimize, and streamline while keeping tests green.
+4. **VERIFY**: Execute `dotnet test` across relevant projects to validate correctness.
+
+---
+
+## 4. Commands Cheat Sheet
 
 ```bash
 # Build all projects in a specific folder
@@ -52,6 +75,9 @@ dotnet build
 
 cd ../../DynamoDBAndS3/DynamoDBAndS3
 dotnet build
+
+# Run tests across solution or specific project
+dotnet test
 
 # Run local web application
 dotnet run
@@ -62,9 +88,10 @@ dotnet lambda package
 
 ---
 
-## 4. Verification Gates for AI Agents
+## 5. Verification Gates for AI Agents
 
 Before submitting code changes or finishing a turn:
 1. Verify all modified projects build cleanly with `dotnet build`.
-2. Confirm that no AWS credentials or account IDs were exposed in code or config files.
-3. If new architectural patterns, major dependencies, or cloud services were introduced, ensure a corresponding ADR is created in `docs/adr/` and indexed in `docs/adr/README.md`.
+2. Run automated test suites with `dotnet test` and ensure all tests pass.
+3. Confirm that no AWS credentials or account IDs were exposed in code or config files.
+4. If new architectural patterns, major dependencies, or cloud services were introduced, ensure a corresponding ADR is created in `docs/adr/` and indexed in `docs/adr/README.md`.

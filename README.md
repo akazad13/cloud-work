@@ -15,6 +15,7 @@
 
 [Overview](#-overview) •
 [Architecture & Decisions](#-architecture--decision-records) •
+[Testing Paradigm](#-testing-paradigm) •
 [Projects Inventory](#-projects-inventory) •
 [Tech Stack](#-tech-stack) •
 [Quick Start](#-quick-start) •
@@ -62,11 +63,25 @@ Technical decisions, patterns, and trade-offs are documented as lightweight Arch
 | :---: | :--- | :---: | :--- |
 | **[ADR-0001](docs/adr/0001-record-architecture-decisions.md)** | [Record Architecture Decisions](docs/adr/0001-record-architecture-decisions.md) | `Accepted` | Governance & Standards |
 | **[ADR-0002](docs/adr/0002-aws-serverless-architecture-and-dependency-modernization.md)** | [AWS Serverless Architecture and Dependency Modernization](docs/adr/0002-aws-serverless-architecture-and-dependency-modernization.md) | `Accepted` | Cloud Architecture & Dependencies |
+| **[ADR-0003](docs/adr/0003-testing-paradigm-and-agentic-verification.md)** | [Testing Paradigm and Agentic Verification for Cloud & Serverless Solutions](docs/adr/0003-testing-paradigm-and-agentic-verification.md) | `Accepted` | Testing & QA |
 
 For guidelines on authoring and updating ADRs, see the [ADR Index & Process Guide](docs/adr/README.md).
 
 > [!NOTE]
 > All projects utilize the official AWS SDK for .NET (`AWSSDK.S3`, `AWSSDK.DynamoDBv2`, `Amazon.Lambda.Core`).
+
+---
+
+## 🧪 Testing Paradigm & Agentic Verification
+
+This repository codifies a cloud and serverless testing standard governed by [ADR-0003](docs/adr/0003-testing-paradigm-and-agentic-verification.md) and the `test-driven-development` engineering skill, optimized for both autonomous AI agents and human engineers:
+
+- 🔒 **Zero Live Cloud Credentials**: All unit and component tests execute 100% locally and offline without requiring AWS accounts, IAM credentials, or STS tokens.
+- 🧩 **In-Memory Cloud Test Doubles**: AWS service dependencies (`IAmazonS3`, `IAmazonDynamoDB`, `IAmazonRekognition`, `IAWSS3Helper`) are injected via constructor interfaces, enabling rapid in-process fakes.
+- 📦 **Event-Driven Lambda Fixtures**: Serverless handlers are validated against deterministic, realistic S3 and API Gateway event fixtures (`S3Event`, `APIGatewayProxyRequest`, `EventNotification`).
+- 🎯 **State Over Interaction Assertions**: Assertions verify resulting data state (image stream dimensions, DynamoDB document attributes, output models) rather than brittle SDK call counts.
+- 📖 **DAMP Test Design**: Tests prioritize Descriptive And Meaningful Phrases and self-contained Arrange-Act-Assert flows for instant diagnostic clarity.
+- 🔁 **Agentic TDD Loop**: Autonomous agents practice the Red-Green-Refactor loop with local `dotnet test` verification before committing code.
 
 ---
 
@@ -108,16 +123,20 @@ git clone https://github.com/akazad13/cloud-work.git
 cd cloud-work
 ```
 
-### 2. Run a Sample Console App
+### 2. Run Tests Locally
 ```bash
-cd AWSS3Connect
-dotnet restore
+dotnet test
+```
+
+### 3. Run a Sample Web App
+```bash
+cd AWSS3Connect/AWSS3Connect
 dotnet run
 ```
 
-### 3. Deploy a Serverless Function
+### 4. Deploy a Serverless Function
 ```bash
-cd ../ServerlessAppsForImgProcessing
+cd ../../ServerlessAppsForImgProcessing/ServerlessAppsForImgProcessing
 dotnet lambda deploy-function ProcessImageFunction
 ```
 

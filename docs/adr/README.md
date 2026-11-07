@@ -8,6 +8,7 @@ This directory documents the architectural decision records (ADRs) for the `clou
 | :---: | :--- | :---: | :---: | :--- |
 | [0001](0001-record-architecture-decisions.md) | [Record Architecture Decisions](0001-record-architecture-decisions.md) | `Accepted` | 2026-11-07 | Architecture Governance & Standards |
 | [0002](0002-aws-serverless-architecture-and-dependency-modernization.md) | [AWS Serverless Architecture and Dependency Modernization](0002-aws-serverless-architecture-and-dependency-modernization.md) | `Accepted` | 2026-11-07 | Cloud Architecture & Dependencies |
+| [0003](0003-testing-paradigm-and-agentic-verification.md) | [Testing Paradigm and Agentic Verification for Cloud & Serverless Solutions](0003-testing-paradigm-and-agentic-verification.md) | `Accepted` | 2026-11-07 | Testing & Quality Assurance |
 
 ---
 
