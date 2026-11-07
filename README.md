@@ -14,7 +14,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 [Overview](#-overview) •
-[Architecture](#-architecture) •
+[Architecture & Decisions](#-architecture--decision-records) •
 [Projects Inventory](#-projects-inventory) •
 [Tech Stack](#-tech-stack) •
 [Quick Start](#-quick-start) •
@@ -36,15 +36,34 @@
 
 ---
 
-## 🏛 Architecture
+## 🏛 Architecture & Decision Records
+
+The repository demonstrates a production-grade, event-driven cloud architecture built on AWS and .NET:
 
 ```mermaid
 flowchart LR
     Client["Client / User"] --> S3["Amazon S3<br/>Asset Bucket"]
     S3 -.->|S3 Event Trigger| Lambda["AWS Lambda<br/>(.NET Serverless Worker)"]
+    Lambda --> Rekognition["Amazon Rekognition<br/>(AI Label Detection)"]
     Lambda --> DDB[("Amazon DynamoDB<br/>Metadata & Status")]
     Lambda --> OutS3["Amazon S3<br/>Processed Output"]
 ```
+
+### Architectural Pillars
+- ⚡ **Event-Driven Serverless Compute**: AWS Lambda functions triggered by S3 bucket events (`s3:ObjectCreated:*`) handle asynchronous media transformation, thumbnail generation, and GIF compilation without blocking client-facing request threads.
+- 🗄️ **Dual-Store Persistence**: Binary assets are stored in Amazon S3, while structured item attributes, AI detection tags, and processing states are indexed in Amazon DynamoDB for single-digit millisecond query latency.
+- 🖼️ **Cross-Platform Media Engine**: Image mutations are powered by `SixLabors.ImageSharp` 3.x, avoiding non-portable native GDI+ (`System.Drawing.Common`) dependencies to ensure flawless execution across Linux Lambda runtimes and containers.
+- 🔒 **Secure Credential Resolution**: All services leverage the official AWS SDK for .NET v4 (`AWSSDK.S3`, `AWSSDK.DynamoDBv2`, `AWSSDK.Rekognition`, `AWSSDK.SQS`) configured through default credential provider chains (IAM roles, environment variables).
+
+### Architecture Decision Records (ADRs)
+Technical decisions, patterns, and trade-offs are documented as lightweight Architecture Decision Records in [`docs/adr/`](docs/adr/README.md):
+
+| ADR | Title | Status | Area |
+| :---: | :--- | :---: | :--- |
+| **[ADR-0001](docs/adr/0001-record-architecture-decisions.md)** | [Record Architecture Decisions](docs/adr/0001-record-architecture-decisions.md) | `Accepted` | Governance & Standards |
+| **[ADR-0002](docs/adr/0002-aws-serverless-architecture-and-dependency-modernization.md)** | [AWS Serverless Architecture and Dependency Modernization](docs/adr/0002-aws-serverless-architecture-and-dependency-modernization.md) | `Accepted` | Cloud Architecture & Dependencies |
+
+For guidelines on authoring and updating ADRs, see the [ADR Index & Process Guide](docs/adr/README.md).
 
 > [!NOTE]
 > All projects utilize the official AWS SDK for .NET (`AWSSDK.S3`, `AWSSDK.DynamoDBv2`, `Amazon.Lambda.Core`).
