@@ -21,11 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.3.0" />
-    <PackageReference Include="AWSSDK.Core" Version="4.0.102.19" />
-    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.102.10" />
-    <PackageReference Include="AWSSDK.S3" Version="4.0.104.11" />
-    <PackageReference Include="AWSSDK.SQS" Version="4.0.100.25" />
+    <PackageReference Include="AutoMapper" Version="11.0.1" />
+    <PackageReference Include="AWSSDK.Core" Version="4.1.1.2" />
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.1.0.3" />
+    <PackageReference Include="AWSSDK.S3" Version="4.1.2" />
+    <PackageReference Include="AWSSDK.SQS" Version="4.1.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.36" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.36" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.36">

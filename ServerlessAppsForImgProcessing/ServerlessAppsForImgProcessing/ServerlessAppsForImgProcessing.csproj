@@ -11,9 +11,9 @@
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.110.2" />
-    <PackageReference Include="AWSSDK.S3" Version="4.0.104.11" />
-    <PackageReference Include="AWSSDK.Rekognition" Version="4.0.101.11" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.1.0.3" />
+    <PackageReference Include="AWSSDK.S3" Version="4.1.2" />
+    <PackageReference Include="AWSSDK.Rekognition" Version="4.1.0.2" />
     <PackageReference Include="Amazon.Lambda.Core" Version="3.4.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.5" />
     <PackageReference Include="Amazon.Lambda.S3Events" Version="3.1.2" />
